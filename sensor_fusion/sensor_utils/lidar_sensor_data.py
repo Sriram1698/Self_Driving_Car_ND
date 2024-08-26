@@ -29,7 +29,6 @@ def process_frames(data_file, start_frame, n_frames):
                 break
             print('------------------------------')
             print('Processing frame #{}'.format(frame_counter))
-            frame_counter += 1
             
             lidar_name = dataset_pb2.LaserName.TOP
             camera_name = dataset_pb2.CameraName.FRONT
@@ -60,7 +59,8 @@ def process_frames(data_file, start_frame, n_frames):
 
             # Uncomment to convert the range image to 3d point-cloud data
             # utils.range_image_to_point_cloud(frame, lidar_name, False)
-
+            
+            frame_counter += 1
         except StopIteration:
             break
 

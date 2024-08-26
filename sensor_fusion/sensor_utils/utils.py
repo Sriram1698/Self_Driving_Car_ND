@@ -1,4 +1,6 @@
 import io
+import os
+import sys
 import cv2
 import zlib
 import math
@@ -6,7 +8,10 @@ import numpy as np
 import open3d as o3d
 from PIL import Image
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from tools.waymo_reader.simple_waymo_open_dataset_reader import dataset_pb2, label_pb2
+from bev_object_detection import obj_det_tools as tools
 
 ################################################################
 
@@ -248,5 +253,70 @@ def range_image_to_point_cloud(frame, lidar_name, visualization=True):
     # Stack lidar point intensity as last column
     pcl_full = np.column_stack((pcl, range_image[idx_range, 1]))
     return pcl_full
+
+################################################################
+
+def crop_pcl(lidar_pcl, configs, visualization = True):
+    """
+    Crop the lidar point cloud with the given config
+    """
+    # Remove points outside of detection cube defined in 'configs.lim_*'
+    mask = np.where((lidar_pcl[:, 0] >= configs.lim_x[0]) & (lidar_pcl[:, 0] <= configs.lim_x[1]) &
+                    (lidar_pcl[:, 1] >= configs.lim_y[0]) & (lidar_pcl[:, 1] <= configs.lim_y[1]) &
+                    (lidar_pcl[:, 2] >= configs.lim_z[0]) & (lidar_pcl[:, 2] <= configs.lim_z[1]))
+    lidar_pcl = lidar_pcl[mask]
+
+    # Visualize cropped point cloud # visualize point-cloud
+    if visualization:
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(lidar_pcl[:, :3])
+        o3d.visualization.draw_geometries([pcd])
+
+    return lidar_pcl
+
+################################################################
+
+def get_min_max_intensity(lidar_pcl):
+    """
+    Get the minimum and maximum intensity for the given point cloud object
+    """
+    min_intensity = np.amin(lidar_pcl[:, 3])
+    max_intensity = np.amax(lidar_pcl[:, 3])
+    return (min_intensity, max_intensity)
+
+################################################################
+
+def render_bb_over_bev(bev_map, labels, configs, vis=False):
+
+    # convert BEV map from tensor to numpy array
+    bev_map_cpy = (bev_map.squeeze().permute(1, 2, 0).numpy() * 255).astype(np.uint8)
+    bev_map_cpy = cv2.resize(bev_map_cpy, (configs.bev_width, configs.bev_height))
+
+    # convert bounding box format format and project into bev
+    label_objects = tools.convert_labels_into_objects(labels, configs)
+    tools.project_detections_into_bev(bev_map_cpy, label_objects, configs, [0,255,0])
+    
+    # display bev map
+    if vis==True:
+        bev_map_cpy = cv2.rotate(bev_map_cpy, cv2.ROTATE_180)   
+        cv2.imshow("BEV map", bev_map_cpy)
+        cv2.waitKey(0)          
+
+    return bev_map_cpy 
+
+################################################################
+
+def render_obj_over_bev(detections, lidar_bev_labels, configs, vis=False):
+    """
+    Render the object over BEV image
+    """
+    # project detected objects into bird's eye view
+    tools.project_detections_into_bev(lidar_bev_labels, detections, configs, [0,0,255])
+
+    # display bev map
+    if vis==True:
+        lidar_bev_labels = cv2.rotate(lidar_bev_labels, cv2.ROTATE_180)   
+        cv2.imshow("BEV map", lidar_bev_labels)
+        cv2.waitKey(0)
 
 ################################################################
