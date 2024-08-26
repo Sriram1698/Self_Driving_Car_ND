@@ -9,6 +9,8 @@ import utils
 from tools.waymo_reader.simple_waymo_open_dataset_reader import WaymoDataFileReader, dataset_pb2, label_pb2
 from tools.waymo_reader.simple_waymo_open_dataset_reader import utils as waymo_utils
 
+################################################################
+
 def process_frames(data_file, start_frame, n_frames):
     datafile = WaymoDataFileReader(data_file)
     dataset_iter = iter(datafile)
@@ -45,10 +47,24 @@ def process_frames(data_file, start_frame, n_frames):
             # utils.visualize_range_image(frame, lidar_name)
 
             # Uncomment to print the pitch resolution
-            utils.print_pitch_resolution(frame, lidar_name)
+            # utils.print_pitch_resolution(frame, lidar_name)
+
+            # Uncomment to print the Lidar frame's max and min range
+            # utils.print_lidar_max_min_range(frame, lidar_name)
+
+            # Uncomment to visualize the Lidar's range channel
+            # utils.visualize_range_channel(frame, lidar_name)
+
+            # Uncomment to visualize the Lidar range image's intensity channel
+            # utils.visualize_intensity_channel(frame, lidar_name)
+
+            # Uncomment to convert the range image to 3d point-cloud data
+            # utils.range_image_to_point_cloud(frame, lidar_name, False)
+
         except StopIteration:
             break
 
+################################################################
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process the waymo dataset frames')
@@ -58,3 +74,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     process_frames(args.tfrecord_file, args.start_frame, args.frames)
+
+################################################################

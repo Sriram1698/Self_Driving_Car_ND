@@ -1,7 +1,9 @@
 import io
 import cv2
 import zlib
+import math
 import numpy as np
+import open3d as o3d
 from PIL import Image
 
 from tools.waymo_reader.simple_waymo_open_dataset_reader import dataset_pb2, label_pb2
@@ -121,3 +123,130 @@ def print_pitch_resolution(frame, lidar_name):
     print("Pitch angle resolution: {0:.2f}°".format(pitch_resolution * 180 / np.pi))
 
 ################################################################ 
+
+def print_lidar_max_min_range(frame, lidar_name):
+    """
+    Get the max and min range for the given lidar frame
+    """
+    # Load the range image
+    range_image = load_range_image(frame, lidar_name)
+    # Replace all the distance value less than 0 to 0, because the distance
+    # can not be negative
+    range_image[range_image < 0] = 0.0
+    print("Max range: {}m, Min range: {}m".format(round(np.amax(range_image[:, :, 0]), 2), round(np.amin(range_image[:, :, 0]), 2)))
+
+################################################################
+
+def visualize_range_channel(frame, lidar_name):
+    """
+    Visualize the range channel for the given lidar frame
+    """
+    # Load the range image 
+    range_image = load_range_image(frame, lidar_name)
+    # Replace all the distance value less than 0 to 0, because the distance
+    # can not be negative
+    range_image[range_image < 0] = 0.0
+    # Extract the range values from the range image data
+    ri_range = range_image[:, :, 0]
+    # Scale the range values between 0 and 255 which represents the pixel values
+    ri_range = (ri_range / (np.amax(ri_range) - np.amin(ri_range))) * 255
+    img_range = ri_range.astype(np.uint8)
+
+    # Focus on +/- deg around image center
+    deg = 45
+    n_cols = int(img_range.shape[1] / (360 // deg))
+    range_image_center = int(img_range.shape[1] / 2)
+
+    img_range = img_range[:, range_image_center - n_cols : range_image_center + n_cols]
+    cv2.imshow('Range channel image', img_range)
+    cv2.waitKey(0)
+
+################################################################
+
+def visualize_intensity_channel(frame, lidar_name):
+    """
+    Visualize the intensity channel for the given lidar frame
+    """
+    # Load the range image 
+    range_image = load_range_image(frame, lidar_name)
+    # Replace all the distance value less than 0 to 0, because the distance
+    # can not be negative
+    range_image[range_image < 0] = 0.0
+    # Extract the intensity values from the range image data
+    ri_intensity = range_image[:, :, 1]
+    # Scale the intensity values between 0 and 255 which represents the pixel values
+    ri_intensity =(np.amax(ri_intensity)/2) * (ri_intensity / (np.amax(ri_intensity) - np.amin(ri_intensity))) * 255
+    img_intensity = ri_intensity.astype(np.uint8)
+
+    # Focus on +/- deg around image center
+    deg = 45
+    n_cols = int(img_intensity.shape[1] / (360 // deg))
+    intensity_image_center = int(img_intensity.shape[1] / 2)
+
+    img_intensity = img_intensity[:, intensity_image_center - n_cols : intensity_image_center + n_cols]
+    cv2.imshow('Intensity channel image', img_intensity)
+    cv2.waitKey(0)
+
+################################################################
+
+def range_image_to_point_cloud(frame, lidar_name, visualization=True):
+    """
+    Convert the range image to 3d point cloud
+    """
+    # Load the range image 
+    range_image = load_range_image(frame, lidar_name)
+    # Replace all the distance value less than 0 to 0, because the distance
+    # can not be negative
+    range_image[range_image < 0] = 0.0
+    # Extract the range values from the range image data
+    ri_range = range_image[:, :, 0]
+
+    # Load the calibration data
+    calib_lidar = [obj for obj in frame.context.laser_calibrations if obj.name == lidar_name][0]
+    
+    # Compute vertical beam inclinations
+    height = ri_range.shape[0]
+    inclination_min = calib_lidar.beam_inclination_min
+    inclination_max = calib_lidar.beam_inclination_max
+    inclinations = np.linspace(inclination_min, inclination_max, height)
+    # Flip the inclinations so that the first angle comes to the top
+    inclinations = np.flip(inclinations)
+
+    # Compute azimuth angle and correct it so that the range image center is aligned to the x-axis
+    width = ri_range.shape[1]
+    extrinsic = np.array(calib_lidar.extrinsic.transform).reshape(4, 4)
+    # atan(y/x)
+    azimuth_correction = math.atan2(extrinsic[1, 0], extrinsic[0, 0])
+    azimuth = np.linspace(np.pi, -np.pi, width) - azimuth_correction
+    
+    # Expand inclination and azimuth such that every range image cell has its own appropriate value pair
+    inclination_tiled = np.broadcast_to(inclinations[:, np.newaxis], (height, width))
+    azimuth_tiled = np.broadcast_to(azimuth[np.newaxis, :], (height, width))
+
+    # Get the 3d coordinates in wrt to lidar frame coordinate
+    x = np.cos(azimuth_tiled) * np.cos(inclination_tiled) * ri_range
+    y = np.sin(azimuth_tiled) * np.cos(inclination_tiled) * ri_range
+    z = np.sin(inclination_tiled) * ri_range
+
+    # Transform the 3D coordinates from lidar coordinate to vehicle coordinate
+    xyz_sensor = np.stack([x, y, z, np.ones_like(z)])
+    # (4, 4) x (4, 64, 2650) -> (4, 64, 2650)
+    xyz_vehicle_coord = np.einsum('ij,jkl->ikl', extrinsic, xyz_sensor)
+    # (4, 64, 2650) -> (64, 2650, 4)
+    xyz_vehicle_coord = xyz_vehicle_coord.transpose(1, 2, 0)
+
+    # Extract points with range > 0
+    idx_range = ri_range > 0
+    pcl = xyz_vehicle_coord[idx_range, : 3]
+
+    # Visualize point-cloud
+    if visualization:
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(pcl)
+        o3d.visualization.draw_geometries([pcd])
+    
+    # Stack lidar point intensity as last column
+    pcl_full = np.column_stack((pcl, range_image[idx_range, 1]))
+    return pcl_full
+
+################################################################
