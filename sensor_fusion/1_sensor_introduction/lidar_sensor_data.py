@@ -5,9 +5,9 @@ import numpy as np
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+import utils
 from tools.waymo_reader.simple_waymo_open_dataset_reader import WaymoDataFileReader, dataset_pb2, label_pb2
 from tools.waymo_reader.simple_waymo_open_dataset_reader import utils as waymo_utils
-import utils
 
 def process_frames(data_file, start_frame, n_frames):
     datafile = WaymoDataFileReader(data_file)
@@ -38,6 +38,14 @@ def process_frames(data_file, start_frame, n_frames):
             # Uncomment to display the camera images associated with the given frame
             # utils.display_image(frame, camera_name)
 
+            # Uncomment to see the shape of the range image for the given frame and lidar
+            # utils.print_range_image_shape(frame, lidar_name)
+            
+            # Uncomment to display the range image for the given frame and lidar
+            # utils.visualize_range_image(frame, lidar_name)
+
+            # Uncomment to print the pitch resolution
+            utils.print_pitch_resolution(frame, lidar_name)
         except StopIteration:
             break
 
