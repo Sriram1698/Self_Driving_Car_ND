@@ -4,6 +4,22 @@ import numpy as np
 from PIL import Image
 from tools.waymo_reader.simple_waymo_open_dataset_reader import dataset_pb2, label_pb2
 
+def get_lidar_transformation_matrix(frame, lidar_name):
+    """
+    Get the transformation matrix for the given lidar with respect to the
+    ego vehicle origin
+    """
+    calib_lidar = [obj for obj in frame.context.laser_calibrations if obj.name == lidar_name][0]
+    return np.array(calib_lidar.extrinsic.transform)
+
+def get_camera_transformation_matrix(frame, camera_name):
+    """
+    Get the transformation matrix for the given camera with respect to the
+    ego vehicle origin
+    """
+    calib_camera = [obj for obj in frame.context.camera_calibrations if obj.name == camera_name][0]
+    return np.array(calib_camera.extrinsic.transform)
+
 def print_no_of_vehicles(frame):
     num_vehicles = 0
     for label in frame.laser_labels:

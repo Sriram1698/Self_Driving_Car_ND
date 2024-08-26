@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+import numpy as np
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -35,16 +36,15 @@ def process_frames(data_file, start_frame, n_frames):
             # utils.print_no_of_vehicles(frame)
 
             # Uncomment to display the camera images associated with the given frame
-            utils.display_image(frame, camera_name)
+            # utils.display_image(frame, camera_name)
 
-            
         except StopIteration:
             break
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Visualize the Lidar frames from .tfrecord data')
-    parser.add_argument('--tfrecord_file', required=True, type=str, help='.tfrecord file path')
+    parser = argparse.ArgumentParser(description='Process the waymo dataset frames')
+    parser.add_argument('--tfrecord_file', required=True, type=str, help='.tfrecord file path from the waymo dataset')
     parser.add_argument('--start_frame', required=False, default=0, type=int, help='Starting frame index')
     parser.add_argument('--frames', required=False, default=10, type=int, help='Number of frames to display')
     args = parser.parse_args()
