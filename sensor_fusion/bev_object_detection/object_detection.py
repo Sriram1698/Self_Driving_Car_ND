@@ -38,8 +38,9 @@ def process_frames(dataset_config, bev_config, obj_det_config):
             lidar_pcl   = utils.range_image_to_point_cloud(frame, lidar_name, False)
             cropped_pcl = utils.crop_pcl(lidar_pcl, bev_config, False)
 
-            utils.pcl_to_bev(cropped_pcl, bev_config)
-            print(utils.get_min_max_intensity(cropped_pcl))
+            utils.pcl_to_bev(cropped_pcl, bev_config, False)
+            # print(utils.get_min_max_intensity(cropped_pcl))
+            utils.count_vehicles_in_frame(frame)
 
             # lidar_bev = load_object_from_file(obj_det_config.results_path, 
             #                                   dataset_config.tffile_name,

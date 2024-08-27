@@ -286,6 +286,22 @@ def get_min_max_intensity(lidar_pcl):
 
 ################################################################
 
+def count_vehicles_in_frame(frame):
+    """
+    Print the number of labelled vehicles and the difficulty level in detection for each vehicle
+    """
+    vehicle_count = 0
+    difficulty_in_detection = 0
+
+    for label in frame.laser_labels:
+        if label.type == label_pb2.Label.Type.TYPE_VEHICLE:
+            vehicle_count += 1
+            if (label.detection_difficulty_level > 0):
+                difficulty_in_detection += 1
+    print("Number of vehicles labelled: {}, Number of vehicles difficult to detect: {}".format(vehicle_count, difficulty_in_detection))
+
+################################################################
+
 def render_bb_over_bev(bev_map, labels, configs, visualization=False):
     """
     Render the bounding box over the Bird Eye View image
