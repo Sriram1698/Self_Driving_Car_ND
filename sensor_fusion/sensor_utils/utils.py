@@ -10,8 +10,8 @@ from PIL import Image
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from tools.waymo_reader.simple_waymo_open_dataset_reader import dataset_pb2, label_pb2
 from bev_object_detection import obj_det_tools as tools
+from tools.waymo_reader.simple_waymo_open_dataset_reader import dataset_pb2, label_pb2
 
 ################################################################
 
@@ -286,9 +286,11 @@ def get_min_max_intensity(lidar_pcl):
 
 ################################################################
 
-def render_bb_over_bev(bev_map, labels, configs, vis=False):
-
-    # convert BEV map from tensor to numpy array
+def render_bb_over_bev(bev_map, labels, configs, visualization=False):
+    """
+    Render the bounding box over the Bird Eye View image
+    """
+    # convert BEV map from tensor to numpy array\
     bev_map_cpy = (bev_map.squeeze().permute(1, 2, 0).numpy() * 255).astype(np.uint8)
     bev_map_cpy = cv2.resize(bev_map_cpy, (configs.bev_width, configs.bev_height))
 
@@ -297,7 +299,7 @@ def render_bb_over_bev(bev_map, labels, configs, vis=False):
     tools.project_detections_into_bev(bev_map_cpy, label_objects, configs, [0,255,0])
     
     # display bev map
-    if vis==True:
+    if visualization==True:
         bev_map_cpy = cv2.rotate(bev_map_cpy, cv2.ROTATE_180)   
         cv2.imshow("BEV map", bev_map_cpy)
         cv2.waitKey(0)          
@@ -317,6 +319,66 @@ def render_obj_over_bev(detections, lidar_bev_labels, configs, vis=False):
     if vis==True:
         lidar_bev_labels = cv2.rotate(lidar_bev_labels, cv2.ROTATE_180)   
         cv2.imshow("BEV map", lidar_bev_labels)
+        cv2.waitKey(0)
+
+################################################################
+
+def pcl_to_bev(pcl, configs, visualization=True):
+    """
+    Visualize the BEV image
+    """
+    # Compute the BEV-map discretization by diving x-range by the bev-image height
+    bev_discret = (configs.lim_x[1] - configs.lim_x[0]) / configs.bev_height
+
+    # Create a copy of the lidar pcl and transform all metrix x-coordinates into bev-image coordinates
+    pcl_copy = np.copy(pcl)
+    # Making all the x-coordinates falls under the same cell corresponds to same x-value
+    pcl_copy[:, 0] = np.int_(np.floor(pcl_copy[:, 0] / bev_discret))
+    
+    # Transform all metrix y-coorinates as well but center the forward-facing x-axis on the middle of the image
+    pcl_copy[:, 1] = np.int_(np.floor(pcl_copy[:, 1] / bev_discret) + (configs.bev_width + 1) / 2)
+
+    # Shift level of ground plane to avoid flipping from 0 to 255 for neighbouring pixels
+    pcl_copy[:, 2] = pcl_copy[:, 2] - configs.lim_z[0]
+
+    # Rearrange elements in pcl_copy by sorting first by x, then by y, then by decreasing height
+    idx_height = np.lexsort((-pcl_copy[:, 2], pcl_copy[:, 1], pcl_copy[:, 0]))
+    pcl_sorted = pcl_copy[idx_height]
+
+    # Extract all points with identical x and y such that only the top-most z-coordinate is kep (use numpy.unique)
+    _, idx_height_unique = np.unique(pcl_sorted[:, 0:2], axis=0, return_index=True)
+    pcl_sorted = pcl_sorted[idx_height_unique]
+
+    # Assign the height value of each unique entry in lidar_top_pcl to the height map and
+    # make sure that each entry is normalized on the difference between the upper and lower height
+    # defined in the config file
+    height_map = np.zeros((configs.bev_height + 1, configs.bev_height + 1))
+    height_map[np.int_(pcl_sorted[:, 0]), np.int_(pcl_sorted[:, 1])] = pcl_sorted[:, 2] / float(np.abs(configs.lim_z[1] - configs.lim_z[0]))
+
+    # Sorted points such that in case of identical BEV grid coordinates, the points in 
+    # each grid cell are arranged based on intensity
+    # Cap the max intensity value to 1.0
+    pcl_copy[pcl_copy[:, 3] > 1.0, 3] = 1.0
+    idx_intensity = np.lexsort((-pcl_copy[:, 3], pcl_copy[:, 1], pcl_copy[:, 0]))
+    pcl_copy = pcl_copy[idx_intensity]
+
+    _, idx_intensity_unique = np.unique(pcl_copy[:, 0:2], axis=0, return_index=True)
+    pcl_sorted_intensity = pcl_copy[idx_intensity_unique]
+
+    # Create the intensity map
+    intensity_map = np.zeros((configs.bev_height + 1, configs.bev_height + 1))
+    intensity_map[np.int_(pcl_sorted[:, 0]), np.int_(pcl_sorted[:, 1])] = pcl_sorted_intensity[:, 3] / (np.amax(pcl_sorted_intensity[:, 3]) - np.amin(pcl_sorted_intensity[:, 3]))
+
+    # Visualize intensity map
+    if visualization:
+        # img_intensity = intensity_map * 256
+        # img_intensity = img_intensity.astype(np.uint8)
+        # cv2.imshow('img_intensity', img_intensity)
+        # cv2.waitKey(0)
+
+        img_height = height_map * 256
+        img_height = img_height.astype(np.uint8)
+        cv2.imshow('img_height', img_height)
         cv2.waitKey(0)
 
 ################################################################

@@ -38,11 +38,12 @@ def process_frames(dataset_config, bev_config, obj_det_config):
             lidar_pcl   = utils.range_image_to_point_cloud(frame, lidar_name, False)
             cropped_pcl = utils.crop_pcl(lidar_pcl, bev_config, False)
 
-            lidar_bev = load_object_from_file(obj_det_config.results_path, 
-                                              dataset_config.tffile_name,
-                                              bev_config.bev_obj_name,
-                                              frame_counter)
-            lidar_bev_labels = utils.render_bb_over_bev(lidar_bev, frame.laser_labels, bev_config, True)
+            utils.pcl_to_bev(cropped_pcl, bev_config)
+            # lidar_bev = load_object_from_file(obj_det_config.results_path, 
+            #                                   dataset_config.tffile_name,
+            #                                   bev_config.bev_obj_name,
+            #                                   frame_counter)
+            # lidar_bev_labels = utils.render_bb_over_bev(lidar_bev, frame.laser_labels, bev_config, True)
             # Increment the frame counter
             frame_counter += 1
 
@@ -69,11 +70,12 @@ def process_data(config):
     bev_config.lim_z            = config['bev_config']['lim_z']
     bev_config.bev_width        = config['bev_config']['bev_width']
     bev_config.bev_height       = config['bev_config']['bev_height']
+    bev_config.conf_thresh      = config['bev_config']['conf_thresh']
     bev_config.bev_obj_name     = config['bev_config']['bev_objname']
+
 
     # Object detection config
     obj_det_config              = edict()      
-    obj_det_config.conf_thresh  = config['object_detection']['conf_thresh']
     obj_det_config.model        = config['object_detection']['model']
     obj_det_config.results_path = config['object_detection']['result_path']
 
