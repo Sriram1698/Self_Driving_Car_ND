@@ -39,6 +39,8 @@ def process_frames(dataset_config, bev_config, obj_det_config):
             cropped_pcl = utils.crop_pcl(lidar_pcl, bev_config, False)
 
             utils.pcl_to_bev(cropped_pcl, bev_config)
+            print(utils.get_min_max_intensity(cropped_pcl))
+
             # lidar_bev = load_object_from_file(obj_det_config.results_path, 
             #                                   dataset_config.tffile_name,
             #                                   bev_config.bev_obj_name,
