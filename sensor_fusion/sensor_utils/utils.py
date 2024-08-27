@@ -286,20 +286,22 @@ def get_min_max_intensity(lidar_pcl):
 
 ################################################################
 
-def count_vehicles_in_frame(frame):
+def count_vehicles(frame):
     """
     Print the number of labelled vehicles and the difficulty level in detection for each vehicle
     """
-    vehicle_count = 0
-    difficulty_in_detection = 0
+    # initialze static counter variables
+    if not hasattr(count_vehicles, "cnt_vehicles"):
+        count_vehicles.cnt_vehicles = 0
+        count_vehicles.cnt_difficult_vehicles = 0
 
     for label in frame.laser_labels:
         if label.type == label_pb2.Label.Type.TYPE_VEHICLE:
-            vehicle_count += 1
+            count_vehicles.cnt_vehicles += 1
             if (label.detection_difficulty_level > 0):
-                difficulty_in_detection += 1
-    print("Number of vehicles labelled: {}, Number of vehicles difficult to detect: {}".format(vehicle_count, difficulty_in_detection))
-
+                count_vehicles.cnt_difficult_vehicles += 1
+    print("Number of vehicles labelled: {}, Number of vehicles difficult to detect: {}".format(count_vehicles.cnt_vehicles, count_vehicles.cnt_difficult_vehicles))
+    
 ################################################################
 
 def render_bb_over_bev(bev_map, labels, configs, visualization=False):

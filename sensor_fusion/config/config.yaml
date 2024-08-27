@@ -1,7 +1,7 @@
 dataset:
   base_path     : "data/"
-  tfrecord_file : "segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord"
-  num_frames    : 199
+  tfrecord_file : "segment-10963653239323173269_1924_000_1944_000_with_camera_labels.tfrecord"
+  num_frames    : 200
   start_frame   : 0
 
 object_detection:
