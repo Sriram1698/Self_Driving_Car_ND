@@ -386,7 +386,7 @@ def pcl_to_bev(pcl, configs, visualization=True):
 
     # Create the intensity map
     intensity_map = np.zeros((configs.bev_height + 1, configs.bev_height + 1))
-    intensity_map[np.int_(pcl_sorted[:, 0]), np.int_(pcl_sorted[:, 1])] = pcl_sorted_intensity[:, 3] / (np.amax(pcl_sorted_intensity[:, 3]) - np.amin(pcl_sorted_intensity[:, 3]))
+    intensity_map[np.int_(pcl_sorted_intensity[:, 0]), np.int_(pcl_sorted_intensity[:, 1])] = pcl_sorted_intensity[:, 3] / (np.amax(pcl_sorted_intensity[:, 3]) - np.amin(pcl_sorted_intensity[:, 3]))
 
     # Visualize intensity map
     if visualization:
