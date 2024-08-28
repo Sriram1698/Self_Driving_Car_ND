@@ -1,12 +1,15 @@
 dataset:
   base_path     : "data/"
-  tfrecord_file : "segment-10963653239323173269_1924_000_1944_000_with_camera_labels.tfrecord"
+  tfrecord_file : "segment-1005081002024129653_5313_150_5333_150_with_camera_labels.tfrecord"
   num_frames    : 200
   start_frame   : 0
 
 object_detection:
-  model       : 'darknet'
-  result_path : "results/darknet/results_sequence_1_darknet/"
+  model         : "darknet"
+  result_path   : "results/darknet/results_sequence_1_darknet/"
+  conf_thresh   : 0.5
+  det_obj_name  : "detections"
+  perf_obj_name : "det_performance_"
 
 bev_config:
   lim_x       : [0, 50]
@@ -14,5 +17,4 @@ bev_config:
   lim_z       : [-1, 3]
   bev_width   : 608
   bev_height  : 608
-  conf_thresh : 0.5
   bev_objname : "lidar_bev"

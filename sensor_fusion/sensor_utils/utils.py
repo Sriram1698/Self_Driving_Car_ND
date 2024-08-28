@@ -7,6 +7,7 @@ import math
 import numpy as np
 import open3d as o3d
 from PIL import Image
+import matplotlib.pyplot as plt
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -399,4 +400,38 @@ def pcl_to_bev(pcl, configs, visualization=True):
         cv2.imshow('img_height', img_height)
         cv2.waitKey(0)
 
+################################################################
+
+def compute_precision_and_recall(detection_metrices, conf_threshold=0.5):
+    """
+    Compute the precision and recall from the detection metrices
+    """
+    if len(detection_metrices) == 0:
+        print("No detections for the confidence threshold: {}".format(conf_threshold))
+        return (-1, -1)
+
+    # Extract the number of true positives, true negatives, false positives and false negatives
+    pos_negs = []
+    for metric in detection_metrices:
+        pos_negs.append(metric[2])
+    
+    pos, tp, fn, fp = np.sum(np.array(pos_negs), axis=0).reshape(1, 4)[0]
+    
+    # print("TP: {}, FN: {}, FP: {}".format(tp, fn, fp))
+
+    precision = tp / (tp + fp)
+    recall = tp / (tp + fn)
+    # print("Precision: {}, Recall: {}".format(precision, recall))
+    
+    return (precision, recall)
+
+################################################################
+
+def plot_precision_recall(precisions, recalls):
+    """
+    Plot the precision and recall curve
+    """
+    plt.scatter(recalls, precisions)   
+    plt.show()
+    
 ################################################################
