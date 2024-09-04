@@ -45,10 +45,10 @@ def process_frames(dataset_config, bev_config, obj_det_config):
             lidar_name  = dataset_pb2.LaserName.TOP
             camera_name = dataset_pb2.CameraName.FRONT
 
-            # lidar_pcl   = utils.range_image_to_point_cloud(frame, lidar_name, False)
-            # cropped_pcl = utils.crop_pcl(lidar_pcl, bev_config, False)
+            lidar_pcl   = utils.range_image_to_point_cloud(frame, lidar_name, False)
+            cropped_pcl = utils.crop_pcl(lidar_pcl, bev_config, False)
 
-            # utils.pcl_to_bev(cropped_pcl, bev_config, False)
+            utils.pcl_to_bev(cropped_pcl, bev_config, False)
             # print(utils.get_min_max_intensity(cropped_pcl))
             # utils.count_vehicles(frame)
 
